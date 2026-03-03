@@ -5,26 +5,71 @@
  * and dispatches a repository_dispatch event to trigger tailoring.
  */
 
-const REPO_OWNER = "jarlathphelan";
+const REPO_OWNER = "jarlath-phelan";
 const REPO_NAME = "job-search";
 const DATA_FILE = "data.json";
+const TOKEN_KEY = "gh_dispatch_token";
 
 let selectedRole = null;
 let rolesData = [];
 
+// --- Token management ---
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY) || "";
+}
+
+function saveToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+function initTokenUI() {
+  var toggle = document.getElementById("settings-toggle");
+  var section = document.getElementById("settings-section");
+  var input = document.getElementById("gh-token");
+  var savedMsg = document.getElementById("token-saved");
+
+  var hasToken = !!getToken();
+
+  if (hasToken) {
+    toggle.textContent = "Token saved. Change settings";
+    input.value = getToken();
+  } else {
+    toggle.textContent = "Set up GitHub token (one-time)";
+    section.classList.add("visible");
+  }
+
+  toggle.addEventListener("click", function () {
+    section.classList.toggle("visible");
+  });
+
+  input.addEventListener("change", function () {
+    var val = input.value.trim();
+    if (val) {
+      saveToken(val);
+      savedMsg.style.display = "block";
+      toggle.textContent = "Token saved. Change settings";
+      setTimeout(function () {
+        savedMsg.style.display = "none";
+        section.classList.remove("visible");
+      }, 1500);
+    }
+  });
+}
+
 // --- Data loading ---
 
 async function loadRoles() {
-  const container = document.getElementById("roles-container");
+  var container = document.getElementById("roles-container");
   try {
-    const resp = await fetch(DATA_FILE);
+    var resp = await fetch(DATA_FILE);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
+    var data = await resp.json();
     rolesData = data.roles || [];
     renderRoles(rolesData, container);
   } catch (_err) {
     container.textContent = "";
-    const msg = document.createElement("div");
+    var msg = document.createElement("div");
     msg.className = "empty";
     msg.textContent = "No roles available today. Check back at 6 PM ET.";
     container.appendChild(msg);
@@ -34,18 +79,16 @@ async function loadRoles() {
 // --- Rendering (safe DOM construction) ---
 
 function createScoreBar(label, value) {
-  const pct = Math.round(value * 100);
-  const cls = value >= 0.7 ? "bar-high" : value >= 0.4 ? "bar-mid" : "bar-low";
+  var pct = Math.round(value * 100);
+  var cls = value >= 0.7 ? "bar-high" : value >= 0.4 ? "bar-mid" : "bar-low";
 
-  const span = document.createElement("span");
+  var span = document.createElement("span");
+  span.appendChild(document.createTextNode(label + " "));
 
-  const labelText = document.createTextNode(label + " ");
-  span.appendChild(labelText);
-
-  const bg = document.createElement("span");
+  var bg = document.createElement("span");
   bg.className = "score-bar-bg";
 
-  const fill = document.createElement("span");
+  var fill = document.createElement("span");
   fill.className = "score-bar-fill " + cls;
   fill.style.width = pct + "%";
   bg.appendChild(fill);
@@ -55,10 +98,10 @@ function createScoreBar(label, value) {
 }
 
 function createRoleCard(role) {
-  const scoreClass = role.tier === "strong" ? "score-strong" : "score-good";
-  const cardClass = role.tier === "strong" ? "strong" : "good";
+  var scoreClass = role.tier === "strong" ? "score-strong" : "score-good";
+  var cardClass = role.tier === "strong" ? "strong" : "good";
 
-  const card = document.createElement("div");
+  var card = document.createElement("div");
   card.className = "role-card " + cardClass;
   card.dataset.rank = role.rank;
   card.addEventListener("click", function () {
@@ -66,29 +109,29 @@ function createRoleCard(role) {
   });
 
   // Header row
-  const header = document.createElement("div");
+  var header = document.createElement("div");
   header.className = "role-header";
 
-  const headerLeft = document.createElement("div");
+  var headerLeft = document.createElement("div");
 
-  const rankSpan = document.createElement("span");
+  var rankSpan = document.createElement("span");
   rankSpan.className = "role-rank";
   rankSpan.textContent = "#" + role.rank;
   headerLeft.appendChild(rankSpan);
 
-  const titleSpan = document.createElement("span");
+  var titleSpan = document.createElement("span");
   titleSpan.className = "role-title";
   titleSpan.textContent = role.title;
   headerLeft.appendChild(titleSpan);
 
   headerLeft.appendChild(document.createTextNode(" at "));
 
-  const companySpan = document.createElement("span");
+  var companySpan = document.createElement("span");
   companySpan.className = "role-company";
   companySpan.textContent = role.company;
   headerLeft.appendChild(companySpan);
 
-  const scoreSpan = document.createElement("span");
+  var scoreSpan = document.createElement("span");
   scoreSpan.className = "role-score " + scoreClass;
   scoreSpan.textContent = Math.round(role.final_score * 100) + "%";
 
@@ -97,27 +140,27 @@ function createRoleCard(role) {
   card.appendChild(header);
 
   // Meta row
-  const meta = document.createElement("div");
+  var meta = document.createElement("div");
   meta.className = "role-meta";
   meta.textContent = role.location;
 
   if (role.salary_display) {
-    const salSpan = document.createElement("span");
+    var salSpan = document.createElement("span");
     salSpan.className =
       "role-salary " +
       (role.salary_source === "actual" ? "salary-actual" : "salary-estimated");
     salSpan.textContent = role.salary_display;
     meta.appendChild(salSpan);
 
-    const salLabel = document.createElement("span");
+    var salLabel = document.createElement("span");
     salLabel.style.cssText = "color:#95a5a6;font-size:11px;";
     salLabel.textContent =
-      "(" + (role.salary_source === "actual" ? "actual" : "est") + ")";
+      " (" + (role.salary_source === "actual" ? "actual" : "est") + ")";
     meta.appendChild(salLabel);
   }
 
   if (role.confidence) {
-    const confSpan = document.createElement("span");
+    var confSpan = document.createElement("span");
     confSpan.className = "confidence conf-" + role.confidence;
     confSpan.textContent = role.confidence;
     meta.appendChild(confSpan);
@@ -126,7 +169,7 @@ function createRoleCard(role) {
   card.appendChild(meta);
 
   // Score bars
-  const bars = document.createElement("div");
+  var bars = document.createElement("div");
   bars.className = "score-bars";
   bars.appendChild(createScoreBar("Keyword", role.keyword_score));
   bars.appendChild(createScoreBar("Research", role.research_score));
@@ -135,7 +178,7 @@ function createRoleCard(role) {
 
   // Fit notes
   if (role.fit_notes) {
-    const fitDiv = document.createElement("div");
+    var fitDiv = document.createElement("div");
     fitDiv.className = "fit-notes";
     fitDiv.textContent = role.fit_notes;
     card.appendChild(fitDiv);
@@ -148,7 +191,7 @@ function renderRoles(roles, container) {
   container.textContent = "";
 
   if (!roles || roles.length === 0) {
-    const msg = document.createElement("div");
+    var msg = document.createElement("div");
     msg.className = "empty";
     msg.textContent = "No roles available today.";
     container.appendChild(msg);
@@ -171,6 +214,7 @@ function selectRole(rank) {
   if (card) {
     card.classList.add("selected");
     selectedRole = rank;
+    var role = rolesData.find(function (r) { return r.rank === rank; });
     var btn = document.getElementById("apply-btn");
     btn.disabled = false;
     btn.textContent = "Apply to #" + rank + " \u2192";
@@ -182,9 +226,10 @@ function selectRole(rank) {
 document.getElementById("apply-btn").addEventListener("click", async function () {
   if (!selectedRole) return;
 
-  var token = document.getElementById("gh-token").value.trim();
+  var token = getToken();
   if (!token) {
-    showStatus("Enter your GitHub token first.", "error");
+    showStatus("Set up your GitHub token first (click the link above).", "error");
+    document.getElementById("settings-section").classList.add("visible");
     return;
   }
 
@@ -230,7 +275,7 @@ document.getElementById("apply-btn").addEventListener("click", async function ()
           role.title +
           " at " +
           role.company +
-          ". You'll get an email when materials are ready.",
+          ". You\u2019ll get an email when materials are ready.",
         "success"
       );
       btn.textContent = "Dispatched!";
@@ -256,4 +301,5 @@ function showStatus(msg, type) {
 }
 
 // --- Init ---
+initTokenUI();
 loadRoles();
