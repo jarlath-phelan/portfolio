@@ -32,11 +32,11 @@ function initTokenUI() {
   var hasToken = !!getToken();
 
   if (hasToken) {
-    toggle.textContent = "Token saved. Change settings";
+    toggle.textContent = "Change settings";
     input.value = getToken();
   } else {
-    toggle.textContent = "Set up GitHub token (one-time)";
-    section.classList.add("visible");
+    // Don't show token section on load — only when user clicks Apply without one
+    toggle.textContent = "Settings";
   }
 
   toggle.addEventListener("click", function () {
@@ -48,13 +48,19 @@ function initTokenUI() {
     if (val) {
       saveToken(val);
       savedMsg.style.display = "block";
-      toggle.textContent = "Token saved. Change settings";
+      toggle.textContent = "Change settings";
       setTimeout(function () {
         savedMsg.style.display = "none";
         section.classList.remove("visible");
       }, 1500);
     }
   });
+}
+
+function promptForToken() {
+  var section = document.getElementById("settings-section");
+  section.classList.add("visible");
+  document.getElementById("gh-token").focus();
 }
 
 // --- Data loading ---
@@ -228,8 +234,8 @@ document.getElementById("apply-btn").addEventListener("click", async function ()
 
   var token = getToken();
   if (!token) {
-    showStatus("Set up your GitHub token first (click the link above).", "error");
-    document.getElementById("settings-section").classList.add("visible");
+    showStatus("Enter your GitHub token to dispatch.", "error");
+    promptForToken();
     return;
   }
 
