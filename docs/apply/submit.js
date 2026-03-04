@@ -2,66 +2,14 @@
  * GitHub Pages selection form for the daily "Pick One and Apply" pipeline.
  *
  * Loads data.json, renders role cards using safe DOM construction,
- * and dispatches a repository_dispatch event to trigger tailoring.
+ * and dispatches via Cloudflare Worker proxy to trigger tailoring.
  */
 
-const REPO_OWNER = "jarlath-phelan";
-const REPO_NAME = "job-search";
+const WORKER_URL = "https://apply-dispatch.jarlath-phelan.workers.dev";
 const DATA_FILE = "data.json";
-const TOKEN_KEY = "gh_dispatch_token";
 
 let selectedRole = null;
 let rolesData = [];
-
-// --- Token management ---
-
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY) || "";
-}
-
-function saveToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-function initTokenUI() {
-  var toggle = document.getElementById("settings-toggle");
-  var section = document.getElementById("settings-section");
-  var input = document.getElementById("gh-token");
-  var savedMsg = document.getElementById("token-saved");
-
-  var hasToken = !!getToken();
-
-  if (hasToken) {
-    toggle.textContent = "Change settings";
-    input.value = getToken();
-  } else {
-    // Don't show token section on load — only when user clicks Apply without one
-    toggle.textContent = "Settings";
-  }
-
-  toggle.addEventListener("click", function () {
-    section.classList.toggle("visible");
-  });
-
-  input.addEventListener("change", function () {
-    var val = input.value.trim();
-    if (val) {
-      saveToken(val);
-      savedMsg.style.display = "block";
-      toggle.textContent = "Change settings";
-      setTimeout(function () {
-        savedMsg.style.display = "none";
-        section.classList.remove("visible");
-      }, 1500);
-    }
-  });
-}
-
-function promptForToken() {
-  var section = document.getElementById("settings-section");
-  section.classList.add("visible");
-  document.getElementById("gh-token").focus();
-}
 
 // --- Data loading ---
 
@@ -220,7 +168,6 @@ function selectRole(rank) {
   if (card) {
     card.classList.add("selected");
     selectedRole = rank;
-    var role = rolesData.find(function (r) { return r.rank === rank; });
     var btn = document.getElementById("apply-btn");
     btn.disabled = false;
     btn.textContent = "Apply to #" + rank + " \u2192";
@@ -231,13 +178,6 @@ function selectRole(rank) {
 
 document.getElementById("apply-btn").addEventListener("click", async function () {
   if (!selectedRole) return;
-
-  var token = getToken();
-  if (!token) {
-    showStatus("Enter your GitHub token to dispatch.", "error");
-    promptForToken();
-    return;
-  }
 
   var btn = document.getElementById("apply-btn");
   btn.disabled = true;
@@ -253,29 +193,21 @@ document.getElementById("apply-btn").addEventListener("click", async function ()
       return;
     }
 
-    var dispatchResp = await fetch(
-      "https://api.github.com/repos/" + REPO_OWNER + "/" + REPO_NAME + "/dispatches",
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: "Bearer " + token,
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-        body: JSON.stringify({
-          event_type: "tailor_application",
-          client_payload: {
-            company: role.company,
-            role: role.title,
-            url: role.url,
-            posting_text: role.description,
-            location: role.location,
-          },
-        }),
-      }
-    );
+    var resp = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        company: role.company,
+        role: role.title,
+        url: role.url,
+        posting_text: role.description,
+        location: role.location,
+      }),
+    });
 
-    if (dispatchResp.status === 204) {
+    var result = await resp.json();
+
+    if (resp.ok && result.ok) {
       showStatus(
         "Tailoring triggered for " +
           role.title +
@@ -286,8 +218,7 @@ document.getElementById("apply-btn").addEventListener("click", async function ()
       );
       btn.textContent = "Dispatched!";
     } else {
-      var errText = await dispatchResp.text();
-      showStatus("GitHub API error: " + dispatchResp.status + " " + errText, "error");
+      showStatus("Error: " + (result.error || "Unknown error"), "error");
       btn.disabled = false;
       btn.textContent = "Apply to #" + selectedRole + " \u2192";
     }
@@ -307,5 +238,4 @@ function showStatus(msg, type) {
 }
 
 // --- Init ---
-initTokenUI();
 loadRoles();
