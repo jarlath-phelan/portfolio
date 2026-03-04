@@ -5,7 +5,7 @@
  * and dispatches via Cloudflare Worker proxy to trigger tailoring.
  */
 
-const WORKER_URL = "https://apply-dispatch.jarlath-phelan.workers.dev";
+const WORKER_URL = "https://apply-dispatch.jarlath-career.workers.dev";
 const DATA_FILE = "data.json";
 
 let selectedRole = null;
