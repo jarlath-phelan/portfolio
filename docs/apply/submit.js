@@ -138,6 +138,33 @@ function createRoleCard(role) {
     card.appendChild(fitDiv);
   }
 
+  // Requirement badges
+  if (role.requirements) {
+    var badges = document.createElement("div");
+    badges.className = "req-badges";
+
+    if (role.requirements.resume) {
+      var b = document.createElement("span");
+      b.className = "req-badge badge-resume";
+      b.textContent = "Resume";
+      badges.appendChild(b);
+    }
+    if (role.requirements.cover_letter) {
+      var b = document.createElement("span");
+      b.className = "req-badge badge-cover";
+      b.textContent = "Cover Letter";
+      badges.appendChild(b);
+    }
+    var questions = role.requirements.custom_questions || [];
+    if (questions.length > 0) {
+      var b = document.createElement("span");
+      b.className = "req-badge badge-essay";
+      b.textContent = questions.length + " Essay" + (questions.length > 1 ? "s" : "");
+      badges.appendChild(b);
+    }
+    card.appendChild(badges);
+  }
+
   return card;
 }
 
@@ -174,24 +201,90 @@ function selectRole(rank) {
   }
 }
 
+// --- Confirmation panel ---
+
+function showConfirmPanel(role) {
+  var overlay = document.getElementById("confirm-overlay");
+  var title = document.getElementById("confirm-title");
+  var subtitle = document.getElementById("confirm-subtitle");
+  var reqsList = document.getElementById("confirm-reqs");
+  var options = document.getElementById("confirm-options");
+
+  title.textContent = role.title + " at " + role.company;
+
+  var reqs = role.requirements || {};
+  var tier = reqs.tier || 1;
+  var tierLabels = { 1: "Tier 1 — Resume only", 2: "Tier 2 — Resume + Cover Letter", 3: "Tier 3 — Full Package" };
+  subtitle.textContent = tierLabels[tier] || tierLabels[1];
+
+  // Requirements checklist
+  reqsList.textContent = "";
+  if (reqs.resume) {
+    var li = document.createElement("li");
+    li.textContent = "Tailored resume";
+    reqsList.appendChild(li);
+  }
+  if (reqs.cover_letter) {
+    var li = document.createElement("li");
+    li.textContent = "Cover letter";
+    reqsList.appendChild(li);
+  }
+  var questions = reqs.custom_questions || [];
+  if (questions.length > 0) {
+    var li = document.createElement("li");
+    li.textContent = questions.length + " essay answer" + (questions.length > 1 ? "s" : "");
+    reqsList.appendChild(li);
+  }
+  var li = document.createElement("li");
+  li.textContent = "Recruiter feedback loop";
+  reqsList.appendChild(li);
+
+  // Panel review option (only show for Tier 3)
+  options.textContent = "";
+  if (tier === 3) {
+    var label = document.createElement("label");
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = "panel-review-cb";
+    cb.style.marginRight = "6px";
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode("Run full panel review (3 AI perspectives)"));
+    options.appendChild(label);
+  }
+
+  overlay.classList.add("visible");
+}
+
+function hideConfirmPanel() {
+  document.getElementById("confirm-overlay").classList.remove("visible");
+}
+
 // --- Submission ---
 
-document.getElementById("apply-btn").addEventListener("click", async function () {
+document.getElementById("apply-btn").addEventListener("click", function () {
   if (!selectedRole) return;
+  var role = rolesData.find(function (r) { return r.rank === selectedRole; });
+  if (!role) { showStatus("Role not found in data.", "error"); return; }
+  showConfirmPanel(role);
+});
+
+document.getElementById("confirm-cancel").addEventListener("click", hideConfirmPanel);
+
+document.getElementById("confirm-go").addEventListener("click", async function () {
+  hideConfirmPanel();
 
   var btn = document.getElementById("apply-btn");
   btn.disabled = true;
   btn.textContent = "Dispatching...";
 
   try {
-    var role = rolesData.find(function (r) {
-      return r.rank === selectedRole;
-    });
+    var role = rolesData.find(function (r) { return r.rank === selectedRole; });
+    if (!role) { showStatus("Role not found in data.", "error"); return; }
 
-    if (!role) {
-      showStatus("Role not found in data.", "error");
-      return;
-    }
+    var reqs = role.requirements || {};
+    var tier = reqs.tier || 1;
+    var panelCb = document.getElementById("panel-review-cb");
+    var panelReview = panelCb ? panelCb.checked : false;
 
     var resp = await fetch(WORKER_URL, {
       method: "POST",
@@ -202,6 +295,8 @@ document.getElementById("apply-btn").addEventListener("click", async function ()
         url: role.url,
         posting_text: role.description,
         location: role.location,
+        tier: tier,
+        panel_review: panelReview,
       }),
     });
 
@@ -209,11 +304,8 @@ document.getElementById("apply-btn").addEventListener("click", async function ()
 
     if (resp.ok && result.ok) {
       showStatus(
-        "Tailoring triggered for " +
-          role.title +
-          " at " +
-          role.company +
-          ". You\u2019ll get an email when materials are ready.",
+        "Tailoring triggered for " + role.title + " at " + role.company +
+        ". You\u2019ll get an email when materials are ready.",
         "success"
       );
       btn.textContent = "Dispatched!";

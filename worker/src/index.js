@@ -52,6 +52,8 @@ export default {
               url: body.url || "",
               posting_text: body.posting_text || "",
               location: body.location || "",
+              tier: body.tier || 1,
+              panel_review: body.panel_review || false,
             },
           }),
         }
