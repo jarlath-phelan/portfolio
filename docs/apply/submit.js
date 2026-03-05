@@ -73,6 +73,15 @@ function createRoleCard(role) {
   rankSpan.textContent = "#" + role.rank;
   headerLeft.appendChild(rankSpan);
 
+  // "New" badge if discovered today
+  if (role.discovered_date === new Date().toISOString().slice(0, 10)) {
+    var newBadge = document.createElement("span");
+    newBadge.className = "req-badge badge-new";
+    newBadge.textContent = "New";
+    newBadge.style.marginRight = "6px";
+    headerLeft.appendChild(newBadge);
+  }
+
   var titleSpan = document.createElement("span");
   titleSpan.className = "role-title";
   titleSpan.textContent = role.title;
