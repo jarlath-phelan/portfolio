@@ -8,7 +8,7 @@
 const WORKER_URL = "https://apply-dispatch.jarlath-career.workers.dev";
 const DATA_FILE = "data.json";
 
-let selectedRole = null;
+let selectedRoles = new Set();
 let rolesData = [];
 
 // --- Data loading ---
@@ -59,7 +59,7 @@ function createRoleCard(role) {
   card.className = "role-card " + cardClass;
   card.dataset.rank = role.rank;
   card.addEventListener("click", function () {
-    selectRole(role.rank);
+    toggleRole(role.rank);
   });
 
   // Header row
@@ -186,69 +186,76 @@ function renderRoles(roles, container) {
 
 // --- Selection ---
 
-function selectRole(rank) {
-  document.querySelectorAll(".role-card.selected").forEach(function (el) {
-    el.classList.remove("selected");
-  });
-
+function toggleRole(rank) {
   var card = document.querySelector('.role-card[data-rank="' + rank + '"]');
-  if (card) {
+  if (!card) return;
+
+  if (selectedRoles.has(rank)) {
+    selectedRoles.delete(rank);
+    card.classList.remove("selected");
+  } else {
+    selectedRoles.add(rank);
     card.classList.add("selected");
-    selectedRole = rank;
-    var btn = document.getElementById("apply-btn");
+  }
+
+  var btn = document.getElementById("apply-btn");
+  var count = selectedRoles.size;
+  if (count === 0) {
+    btn.disabled = true;
+    btn.textContent = "Select a role to apply";
+  } else if (count === 1) {
+    var r = rolesData.find(function (r) { return r.rank === Array.from(selectedRoles)[0]; });
     btn.disabled = false;
-    btn.textContent = "Apply to #" + rank + " \u2192";
+    btn.textContent = "Apply to " + (r ? r.company : "#" + Array.from(selectedRoles)[0]) + " \u2192";
+  } else {
+    btn.disabled = false;
+    btn.textContent = "Apply to " + count + " roles \u2192";
   }
 }
 
 // --- Confirmation panel ---
 
-function showConfirmPanel(role) {
+function showConfirmPanel(roles) {
   var overlay = document.getElementById("confirm-overlay");
   var title = document.getElementById("confirm-title");
   var subtitle = document.getElementById("confirm-subtitle");
   var reqsList = document.getElementById("confirm-reqs");
   var options = document.getElementById("confirm-options");
 
-  title.textContent = role.title + " at " + role.company;
+  if (roles.length === 1) {
+    title.textContent = roles[0].title + " at " + roles[0].company;
+  } else {
+    title.textContent = "Apply to " + roles.length + " roles";
+  }
 
-  var reqs = role.requirements || {};
-  var tier = reqs.tier || 1;
-  var tierLabels = { 1: "Tier 1 — Resume only", 2: "Tier 2 — Resume + Cover Letter", 3: "Tier 3 — Full Package" };
-  subtitle.textContent = tierLabels[tier] || tierLabels[1];
-
-  // Requirements checklist
+  // Show role list with tier info
   reqsList.textContent = "";
-  if (reqs.resume) {
-    var li = document.createElement("li");
-    li.textContent = "Tailored resume";
-    reqsList.appendChild(li);
-  }
-  if (reqs.cover_letter) {
-    var li = document.createElement("li");
-    li.textContent = "Cover letter";
-    reqsList.appendChild(li);
-  }
-  var questions = reqs.custom_questions || [];
-  if (questions.length > 0) {
-    var li = document.createElement("li");
-    li.textContent = questions.length + " essay answer" + (questions.length > 1 ? "s" : "");
-    reqsList.appendChild(li);
-  }
-  var li = document.createElement("li");
-  li.textContent = "Recruiter feedback loop";
-  reqsList.appendChild(li);
+  var tierLabels = { 1: "Tier 1 — Resume only", 2: "Tier 2 — Resume + Cover Letter", 3: "Tier 3 — Full Package" };
+  var hasT3 = false;
 
-  // Panel review option (only show for Tier 3)
+  roles.forEach(function (role) {
+    var reqs = role.requirements || {};
+    var tier = reqs.tier || 1;
+    if (tier === 3) hasT3 = true;
+    var li = document.createElement("li");
+    li.textContent = role.company + " — " + role.title + " (" + (tierLabels[tier] || tierLabels[1]) + ")";
+    reqsList.appendChild(li);
+  });
+
+  subtitle.textContent = roles.length === 1
+    ? "Materials will be generated and emailed to you."
+    : roles.length + " workflows will run in parallel. You\u2019ll get a separate email for each.";
+
+  // Panel review option (only show if any role is Tier 3)
   options.textContent = "";
-  if (tier === 3) {
+  if (hasT3) {
     var label = document.createElement("label");
     var cb = document.createElement("input");
     cb.type = "checkbox";
     cb.id = "panel-review-cb";
     cb.style.marginRight = "6px";
     label.appendChild(cb);
-    label.appendChild(document.createTextNode("Run full panel review (3 AI perspectives)"));
+    label.appendChild(document.createTextNode("Run full panel review on Tier 3 roles"));
     options.appendChild(label);
   }
 
@@ -262,10 +269,10 @@ function hideConfirmPanel() {
 // --- Submission ---
 
 document.getElementById("apply-btn").addEventListener("click", function () {
-  if (!selectedRole) return;
-  var role = rolesData.find(function (r) { return r.rank === selectedRole; });
-  if (!role) { showStatus("Role not found in data.", "error"); return; }
-  showConfirmPanel(role);
+  if (selectedRoles.size === 0) return;
+  var roles = rolesData.filter(function (r) { return selectedRoles.has(r.rank); });
+  if (roles.length === 0) { showStatus("No matching roles found.", "error"); return; }
+  showConfirmPanel(roles);
 });
 
 document.getElementById("confirm-cancel").addEventListener("click", hideConfirmPanel);
@@ -275,49 +282,72 @@ document.getElementById("confirm-go").addEventListener("click", async function (
 
   var btn = document.getElementById("apply-btn");
   btn.disabled = true;
-  btn.textContent = "Dispatching...";
 
-  try {
-    var role = rolesData.find(function (r) { return r.rank === selectedRole; });
-    if (!role) { showStatus("Role not found in data.", "error"); return; }
+  var roles = rolesData.filter(function (r) { return selectedRoles.has(r.rank); });
+  var panelCb = document.getElementById("panel-review-cb");
+  var panelReview = panelCb ? panelCb.checked : false;
 
-    var reqs = role.requirements || {};
-    var tier = reqs.tier || 1;
-    var panelCb = document.getElementById("panel-review-cb");
-    var panelReview = panelCb ? panelCb.checked : false;
+  var succeeded = [];
+  var failed = [];
 
-    var resp = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        company: role.company,
-        role: role.title,
-        url: role.url,
-        posting_text: role.description,
-        location: role.location,
-        tier: tier,
-        panel_review: panelReview,
-      }),
-    });
+  btn.textContent = "Dispatching 0/" + roles.length + "...";
 
-    var result = await resp.json();
+  for (var i = 0; i < roles.length; i++) {
+    var role = roles[i];
+    btn.textContent = "Dispatching " + (i + 1) + "/" + roles.length + "...";
 
-    if (resp.ok && result.ok) {
-      showStatus(
-        "Tailoring triggered for " + role.title + " at " + role.company +
-        ". You\u2019ll get an email when materials are ready.",
-        "success"
-      );
-      btn.textContent = "Dispatched!";
-    } else {
-      showStatus("Error: " + (result.error || "Unknown error"), "error");
-      btn.disabled = false;
-      btn.textContent = "Apply to #" + selectedRole + " \u2192";
+    try {
+      var reqs = role.requirements || {};
+      var tier = reqs.tier || 1;
+
+      var resp = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company: role.company,
+          role: role.title,
+          url: role.url,
+          posting_text: role.description,
+          location: role.location,
+          tier: tier,
+          panel_review: panelReview,
+        }),
+      });
+
+      var result = await resp.json();
+      if (resp.ok && result.ok) {
+        succeeded.push(role.company);
+      } else {
+        failed.push(role.company + ": " + (result.error || "Unknown error"));
+      }
+    } catch (err) {
+      failed.push(role.company + ": " + err.message);
     }
-  } catch (err) {
-    showStatus("Error: " + err.message, "error");
+  }
+
+  if (failed.length === 0) {
+    showStatus(
+      "Triggered " + succeeded.length + " workflow" + (succeeded.length > 1 ? "s" : "") +
+      " (" + succeeded.join(", ") + "). You\u2019ll get an email for each.",
+      "success"
+    );
+    btn.textContent = "Dispatched " + succeeded.length + "!";
+    // Clear selection
+    selectedRoles.clear();
+    document.querySelectorAll(".role-card.selected").forEach(function (el) {
+      el.classList.remove("selected");
+    });
+  } else if (succeeded.length > 0) {
+    showStatus(
+      "Triggered " + succeeded.length + ", failed " + failed.length + ": " + failed.join("; "),
+      "error"
+    );
     btn.disabled = false;
-    btn.textContent = "Apply to #" + selectedRole + " \u2192";
+    btn.textContent = "Retry failed (" + failed.length + ")";
+  } else {
+    showStatus("All failed: " + failed.join("; "), "error");
+    btn.disabled = false;
+    btn.textContent = "Apply to " + selectedRoles.size + " roles \u2192";
   }
 });
 

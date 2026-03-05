@@ -147,20 +147,30 @@
         }
         .btn-cancel { background: #ecf0f1; color: #7f8c8d; }
         .btn-confirm { background: #2ecc71; color: white; }
+        .sticky-footer {
+            position: sticky;
+            bottom: 0;
+            background: #f5f6fa;
+            padding: 12px 0 4px 0;
+            border-top: 1px solid #e0e0e0;
+            z-index: 10;
+        }
         .loading { text-align: center; padding: 40px; color: #95a5a6; }
         .empty { text-align: center; padding: 40px; color: #95a5a6; }
     </style>
 </head>
 <body>
-    <h1>Pick One and Apply</h1>
-    <p class="subtitle">Select one role, click Apply, and tailored materials will be generated automatically.</p>
+    <h1>Pick and Apply</h1>
+    <p class="subtitle">Select one or more roles, click Apply, and tailored materials will be generated automatically.</p>
 
     <div id="roles-container">
         <div class="loading">Loading today's matches...</div>
     </div>
 
-    <button class="apply-btn" id="apply-btn" disabled>Select a role to apply</button>
-    <div class="status" id="status"></div>
+    <div class="sticky-footer" id="sticky-footer">
+        <button class="apply-btn" id="apply-btn" disabled>Select a role to apply</button>
+        <div class="status" id="status"></div>
+    </div>
 
     <div class="confirm-overlay" id="confirm-overlay">
         <div class="confirm-panel">
