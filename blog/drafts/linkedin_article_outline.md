@@ -33,9 +33,9 @@ Most A/B tests are designed to convince a product manager. Mine had to convince 
 **Key point:** Product teams care about "did it work?" Legal teams care about "did it keep working, and can you prove it wasn't a fluke?"
 
 - Most product experiments run for 2-4 weeks. Ours ran for years.
-- The core finding — a 20% conversion decline — had to be shown as persistent, not a temporary artifact of novelty effects, seasonal variation, or market shifts.
+- The core finding — a decline in conversion — had to be shown as persistent, not a temporary artifact of novelty effects, seasonal variation, or market shifts.
 - This required a different analytical framework: not just "before vs. after" but "sustained causal impact over time with controls for confounding trends."
-- We used approaches from causal inference (mentioning synthetic control, difference-in-differences) that are standard in economics but rare in product data science.
+- The evidence came from randomized controlled trials (true A/B tests) run over years, not from quasi-experimental methods.
 
 **The lesson for product teams:** Even if you're not going to court, asking "does this effect persist?" is one of the most underrated questions in experimentation. Most teams declare victory on week-2 results and never look back.
 
@@ -47,7 +47,7 @@ Most A/B tests are designed to convince a product manager. Mine had to convince 
 
 - What works in Sweden doesn't necessarily replicate in Japan. Regulatory environments, user behavior, payment infrastructure — all different.
 - We had to demonstrate that the effect was robust across countries, not just in the aggregate.
-- This meant designing experiments that could be analyzed both pooled and per-market, with appropriate corrections for multiple comparisons (Hochberg's step-up procedure across experimental phases).
+- This meant designing experiments that could be analyzed both pooled and per-market, with appropriate corrections for multiple comparisons (the Holm-Bonferroni step-down procedure across experimental phases).
 - The multi-jurisdiction angle also meant coordinating with legal teams in three different regulatory frameworks, each with different evidentiary standards.
 
 **The lesson:** If your experiment only runs in one market, you're measuring a local effect, not a generalizable one. Cross-market replication is the strongest form of validation — and it's almost never done in product experimentation.
@@ -95,7 +95,7 @@ The €1.84 billion fine got the headlines. But for me, the lasting impact was l
 - The €1.84B figure is public record (European Commission press release, March 2024). You can cite it.
 - Compass Lexecon's involvement is public (they're named in court filings). You can reference them.
 - The jurisdictions (EU, Japan, South Korea) are public.
-- Hochberg's step-up correction and synthetic control are standard methods — fine to mention.
+- The Holm-Bonferroni step-down correction is a standard method — fine to mention.
 
 **Before publishing:**
 - Consider whether Spotify has any social media / public communications guidelines that apply to former employees. Most companies don't restrict discussion of publicly available case outcomes, but worth checking.

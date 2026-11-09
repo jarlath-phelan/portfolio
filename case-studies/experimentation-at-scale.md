@@ -30,7 +30,7 @@ Invited to join the experimentation platform advisory panel. Charged with standa
 ### 3. Multi-Market Phased Rollouts
 - Designed rollout strategy for a major recommendation system change across 40+ markets
 - Clustered countries by statistical power to create meaningful test groups
-- Applied multiple comparison corrections (Hochberg step-up) across 6 experimental phases
+- Applied multiple comparison corrections (Holm-Bonferroni step-down) across 6 experimental phases
 - Leading indicator: Week 2 retention significant across all markets
 - North Star outcome: 2M incremental monthly active users
 
@@ -47,7 +47,7 @@ Invited to join the experimentation platform advisory panel. Charged with standa
 
 ## Techniques Used
 
-Randomized controlled trials, ablation testing, phased global rollouts with statistical power clustering, Hochberg step-up correction for multiple comparisons, smokescreen experiments, holdout control groups
+Randomized controlled trials, ablation testing, phased global rollouts with statistical power clustering, Holm-Bonferroni step-down correction for multiple comparisons, smokescreen experiments, holdout control groups
 
 ## Lessons Learned
 

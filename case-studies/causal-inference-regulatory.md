@@ -26,8 +26,8 @@ Led the causal analysis measuring the impact of marketplace restrictions on conv
 
 ### Persistence Testing
 - Most product experiments run for 2–4 weeks. This analysis covered years.
-- The core finding — a ~20% conversion decline — had to be shown as persistent, not a temporary artifact of novelty effects, seasonal variation, or market shifts.
-- Required causal inference frameworks from economics (synthetic control, difference-in-differences) that are standard in academic settings but rare in product data science.
+- The core finding — a decline in conversion — had to be shown as persistent, not a temporary artifact of novelty effects, seasonal variation, or market shifts.
+- The evidence came from randomized controlled trials (true A/B tests) run over years rather than weeks, not from modelling a counterfactual.
 
 ### Multi-Jurisdiction Complexity
 - Effect sizes varied by country due to regulatory environments, market maturity, and platform penetration.
@@ -40,13 +40,13 @@ Led the causal analysis measuring the impact of marketplace restrictions on conv
 
 ## Impact
 
-- Estimated ~$100M in missed revenue with sustained ~20% conversion decline
+- Showed a conversion decline that persisted over multiple years across markets
 - Analysis directly contributed to a regulatory fine of €1.84 billion
 - Established a measurement framework that continues to be used
 
 ## Techniques Used
 
-Quasi-experimental design, synthetic control, difference-in-differences, counterfactual estimation, multi-jurisdiction analysis, persistence testing over multi-year timeframes
+Randomized controlled trials (A/B tests), multi-jurisdiction analysis, persistence testing over multi-year timeframes
 
 ## Lessons Learned
 
